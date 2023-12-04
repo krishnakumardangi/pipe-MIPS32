@@ -1,17 +1,19 @@
 /*
-* Author: Krishna Kumar
-* objective: Implementation of Pipeline MIPS32 processor 
-* File Name: pipe_MIPS32
-* Version: 1.0.01
-* Status: Ok
-*
-*/
+ * Author: Krishna Kumar
+ * objective: Implementation of Pipeline MIPS32 processor 
+ * Description: MIPS32 is the instruction set architecture of popular Reduced Instruction Set Architecture (RISC) processor. I will implement only for a small subset of the instruction (and some simplifying assumptions) using Verilog Design of the pipeline processor.
+ * File Name: pipe_MIPS32
+ * Version: 1.0.01
+ * Status: Ok
+ * Date: 30-11-2023
+ */
 
-
+// Pipeline MIPS32 module
 module pipe_MIPS32 (clk1, clk2); 
 
     input clk1, clk2; // Two-phase clock 
     
+    // Slack Storage
     reg [31:0] PC, IF_ID_IR, IF_ID_NPC; 
     reg [31:0] ID_EX_IR, ID_EX_NPC, ID_EX_A, ID_EX_B, ID_EX_Imm; 
     reg [2:0] ID_EX_type, EX_MEM_type, MEM_WB_type; 
@@ -22,30 +24,38 @@ module pipe_MIPS32 (clk1, clk2);
     reg [31:0] Reg [0:31]; // Register bank (32 x 32) 
     reg [31:0] Mem [0:1023]; // 1024 x 32 memory
     
+    // For Arithmetic and Logic Instructions with register operand
     parameter ADD=6'b000000;
     parameter SUB=6'b000001;
     parameter AND=6'b000010; 
     parameter OR=6'b000011;
     parameter SLT=6'b000100;
     parameter MUL=6'b000101;
-    parameter HLT=6'b111111;
-    parameter LW=6'b001000;
-    parameter SW=6'b001001;
+    
+    // For Arithmetic and Logic Instructions with immediate operand
     parameter ADDI=6'b001010;
     parameter SUBI=6'b001011;
     parameter SLTI=6'b001100;
+    
+    // For Branch Intstructions
     parameter BNEQZ=6'b001101;
     parameter BEQZ=6'b001110;
-  
+    
+    // For Miscellaneous Instructions
+    parameter HLT=6'b111111;
+    parameter LW=6'b001000;
+    parameter SW=6'b001001;
+    
+    //For Arithmetic Logic Unit
     parameter RR_ALU=3'b000, RM_ALU=3'b001, LOAD=3'b010, STORE=3'b011, BRANCH=3'b100, HALT=3'b101; 
     
     reg HALTED; 
-	// Set after HLT instruction is completed (in WB stage) 
+	// Set after HLT instruction is completed (in WB(Register write-back) stage) 
  
     reg TAKEN_BRANCH; 
 	// Required to disable instructions after branch
     
-    always @(posedge clk1) // IF Stage 
+    always @(posedge clk1) // IF Stage: Instruction Fetch 
         if (HALTED == 0) 
           begin 
             if (((EX_MEM_IR[31:26] == BEQZ) && (EX_MEM_cond == 1)) || ((EX_MEM_IR[31:26] == BNEQZ) && (EX_MEM_cond == 0))) 
@@ -62,11 +72,12 @@ module pipe_MIPS32 (clk1, clk2);
                 PC         <= #2 PC + 1; 
               end 
           end
-    always @(posedge clk2) // ID Stage 
+    
+    always @(posedge clk2) // ID Stage: Instruction Decode/Register Fetch 
         if (HALTED == 0) 
-          begin 
-            if (IF_ID_IR[25:21] == 5'b00000) ID_EX_A <= 0; 
-            else ID_EX_A <= #2 Reg[IF_ID_IR[25:21]]; // "rs" 
+          begin
+            if (IF_ID_IR[25:21] == 5'b00000) ID_EX_A <= 0;
+            else ID_EX_A <= #2 Reg[IF_ID_IR[25:21]]; // "rs"
  
             if (IF_ID_IR[20:16] == 5'b00000) ID_EX_B <= 0; 
             else ID_EX_B <= #2 Reg[IF_ID_IR[20:16]]; // "rt" 
@@ -83,11 +94,12 @@ module pipe_MIPS32 (clk1, clk2);
                 BNEQZ,BEQZ:             ID_EX_type <= #2 BRANCH; 
                 HLT:                    ID_EX_type <= #2 HALT; 
                 default:                ID_EX_type <= #2 HALT; 
-                                                  // Invalid opcode
+                                        // For Invalid opcode
             endcase
           end
-    always @(posedge clk1) // EX Stage 
-        if (HALTED == 0) 
+    
+    always @(posedge clk1) // EX Stage: Execution/Effective Address Calculation 
+        if (HALTED == 0)
           begin 
             EX_MEM_type <= #2 ID_EX_type; 
             EX_MEM_IR <= #2 ID_EX_IR; 
@@ -123,9 +135,10 @@ module pipe_MIPS32 (clk1, clk2);
                         end 
             endcase
           end
-    always @(posedge clk2) // MEM Stage 
-        if (HALTED == 0) 
-          begin 
+    
+    always @(posedge clk2) // MEM Stage: Memory Access/Branch Completion
+        if (HALTED == 0)
+          begin
             MEM_WB_type <= #2 EX_MEM_type; 
             MEM_WB_IR   <= #2 EX_MEM_IR; 
  
@@ -136,7 +149,8 @@ module pipe_MIPS32 (clk1, clk2);
                                   Mem[EX_MEM_ALUOut] <= #2 EX_MEM_B; 
             endcase
           end
-    always @(posedge clk1) // WB Stage 
+    
+    always @(posedge clk1) // WB Stage: Register Write-Back 
         if (TAKEN_BRANCH == 0) // Disable write if branch taken 
           begin
             case (MEM_WB_type) 
