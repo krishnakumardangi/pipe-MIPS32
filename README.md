@@ -1,17 +1,18 @@
 This repository for pipe-MIPS32 verilog code.
 
 The MIPS32 is the instruction set architecture of a popular Reduced Instrucon Set Architecture (RISC) processor.
+
 	* It is a 32-bit processor, i.e. can operate on 32 bits	of data	at a time.
 
 ## A Quick Look at MIPS32 ##
 * MIPS32 registers:
 	1. 32-bit general purpose registers (GPRs), R0 to R31.
-	* Register R0 contains a constant 0; cannot be written.
+		* Register R0 contains a constant 0; cannot be written.
 	2. A special-purpose 32-bit program counter (PC).
-	* Points to the next instruction in memory to be fetched and executed.
+		* Points to the next instruction in memory to be fetched and executed.
 * No flag registers (zero, carry, sign etc).
 * Very few addressing modes (register, immediate, register indexed etc).
-	* Only load and stire instructions van access memory.
+	* Only load and store instructions can access memory.
 * We assume memory word size is 32 bits (word addressable).
 
 ## The MIPS32 Instruction Subset Being Considered ##
@@ -47,7 +48,7 @@ The MIPS32 is the instruction set architecture of a popular Reduced Instrucon Se
 ## MIPS Instruction Encoding ##
 * All MIPS32 instructions can be classified into three groups in terms of instruction encoding.
 	- R-type (Register), I-type (Immediate), and J-type (Jump).
-	- In an instruc on encoding, the 32 bits of the instruction are divided into several fields of fixed widths.
+	- In an instruction encoding, the 32 bits of the instruction are divided into several fields of fixed widths.
 	- All instructions may not use all the fields.
 
 * Since the relative positions of some of the fields are same across instructions, instruction decoding becomes very simple.
